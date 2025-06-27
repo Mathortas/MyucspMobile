@@ -6,6 +6,8 @@ void main() {
 }
 
 class MyUCSPApp extends StatelessWidget {
+  const MyUCSPApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
