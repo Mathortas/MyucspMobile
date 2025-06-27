@@ -6,6 +6,8 @@ class AddTareaScreen extends StatelessWidget {
   final fechaController = TextEditingController();
   String categoria = 'P1';
 
+  AddTareaScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,10 +32,10 @@ class AddTareaScreen extends StatelessWidget {
               value: categoria,
               onChanged: (value) => categoria = value!,
               items: [
-                DropdownMenuItem(child: Text("Permanente 1"), value: 'P1'),
-                DropdownMenuItem(child: Text("Permanente 2"), value: 'P2'),
-                DropdownMenuItem(child: Text("Parcial"), value: 'PAR'),
-                DropdownMenuItem(child: Text("Final"), value: 'FIN'),
+                DropdownMenuItem(value: 'P1', child: Text("Permanente 1")),
+                DropdownMenuItem(value: 'P2', child: Text("Permanente 2")),
+                DropdownMenuItem(value: 'PAR', child: Text("Parcial")),
+                DropdownMenuItem(value: 'FIN', child: Text("Final")),
               ],
               decoration: InputDecoration(labelText: "Categoría"),
             ),
