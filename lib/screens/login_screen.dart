@@ -1,7 +1,7 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -10,9 +10,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtl = TextEditingController();
-  final _passCtl  = TextEditingController();
-  final _api      = ApiService();
-  bool _loading   = false;
+  final _passCtl = TextEditingController();
+  final _api = ApiService();
+  bool _loading = false;
   String? _error;
 
   void _submit() async {
@@ -33,38 +33,31 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext c) {
     return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FlutterLogo(size: 100),
-            SizedBox(height: 32),
+            const FlutterLogo(size: 100),
+            const SizedBox(height: 32),
             TextField(
               controller: _emailCtl,
-              decoration: InputDecoration(labelText: 'Usuario'),
+              decoration: const InputDecoration(labelText: 'Usuario'),
             ),
             TextField(
               controller: _passCtl,
-              decoration: InputDecoration(labelText: 'Contraseña'),
+              decoration: const InputDecoration(labelText: 'Contraseña'),
               obscureText: true,
             ),
             if (_error != null) ...[
-              SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Colors.red)),
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
             ],
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _loading
-                ? CircularProgressIndicator()
+                ? const CircularProgressIndicator()
                 : ElevatedButton(
               onPressed: _submit,
-              child: Text('Iniciar sesión'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => RegisterScreen()),
-              ),
-              child: Text('Regístrame'),
+              child: const Text('Iniciar sesión'),
             ),
           ],
         ),

@@ -1,7 +1,7 @@
 // lib/screens/profile_screen.dart
-
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -41,25 +41,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     return Scaffold(
-      appBar: AppBar(title: Text('Mi Perfil')),
+      appBar: AppBar(title: const Text('Mi Perfil')),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Usuario: ${_profile!['username']}', style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text('Nombre: ${_profile!['first_name']} ${_profile!['last_name']}'),
-            SizedBox(height: 8),
+            Text('Usuario: ${_profile!['username']}', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
             Text('Correo: ${_profile!['email']}'),
-            Spacer(),
+            const Spacer(),
             Center(
               child: ElevatedButton(
                 onPressed: () async {
                   await _api.logout();
-                  Navigator.pushReplacementNamed(context, '/login');
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                        (_) => false,
+                  );
                 },
-                child: Text('Cerrar sesión'),
+                child: const Text('Cerrar sesión'),
               ),
             ),
           ],

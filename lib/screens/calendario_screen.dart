@@ -4,7 +4,7 @@ import '../models/tarea.dart';
 import '../services/api_service.dart';
 
 class CalendarioScreen extends StatefulWidget {
-  const CalendarioScreen({Key? key}): super(key:key);
+  const CalendarioScreen({Key? key}) : super(key: key);
   @override
   _CalendarioScreenState createState() => _CalendarioScreenState();
 }
@@ -12,10 +12,10 @@ class CalendarioScreen extends StatefulWidget {
 class _CalendarioScreenState extends State<CalendarioScreen> {
   final _api = ApiService();
   List<Tarea> _pendientes = [];
-  bool _loading=true, _error=false;
+  bool _loading = true, _error = false;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _loadPendientes();
   }
@@ -25,30 +25,56 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       final raw = await _api.fetchTareas();
       setState(() {
         _pendientes = raw
-            .map((j)=>Tarea.fromJson(j))
-            .where((t)=>t.estado=='PENDIENTE')
+            .map((j) => Tarea.fromJson(j))
+            .where((t) => t.estado == 'PENDIENTE')
             .toList();
-        _loading=false;
+        _loading = false;
       });
-    } catch(_) {
-      setState(() { _error=true; _loading=false; });
+    } catch (_) {
+      setState(() {
+        _error = true;
+        _loading = false;
+      });
     }
   }
 
   @override
-  Widget build(BuildContext ctx){
-    if (_loading) return Center(child: CircularProgressIndicator());
-    if (_error)   return Center(child: Text('Error cargando calendario'));
-    return ListView.builder(
+  Widget build(BuildContext ctx) {
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Calendario')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Calendario')),
+        body: const Center(child: Text('Error cargando calendario')),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Calendario')),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
         itemCount: _pendientes.length,
-        itemBuilder: (_,i){
+        itemBuilder: (_, i) {
           final t = _pendientes[i];
-          return ListTile(
-            leading: Icon(Icons.pending_actions),
-            title: Text(t.nombreTarea),
-            subtitle: Text('Entrega: ${t.fechaEntrega.toLocal().toIso8601String().split("T").first}'),
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: const Icon(Icons.pending_actions, color: Colors.blue),
+              title: Text(
+                t.nombreTarea,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Entrega: ${t.fechaEntrega.toLocal().toIso8601String().split("T").first}',
+              ),
+            ),
           );
-        }
+        },
+      ),
     );
   }
 }
