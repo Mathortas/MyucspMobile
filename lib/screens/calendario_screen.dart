@@ -1,55 +1,54 @@
+// lib/screens/calendario_screen.dart
 import 'package:flutter/material.dart';
+import '../models/tarea.dart';
 import '../services/api_service.dart';
 
 class CalendarioScreen extends StatefulWidget {
+  const CalendarioScreen({Key? key}): super(key:key);
   @override
   _CalendarioScreenState createState() => _CalendarioScreenState();
 }
 
 class _CalendarioScreenState extends State<CalendarioScreen> {
   final _api = ApiService();
-  List _tareas = [];
-  bool _loading = true;
+  List<Tarea> _pendientes = [];
+  bool _loading=true, _error=false;
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
-    _api.fetchTareas().then((data) {
+    _loadPendientes();
+  }
+
+  Future<void> _loadPendientes() async {
+    try {
+      final raw = await _api.fetchTareas();
       setState(() {
-        _tareas = data;
-        _loading = false;
+        _pendientes = raw
+            .map((j)=>Tarea.fromJson(j))
+            .where((t)=>t.estado=='PENDIENTE')
+            .toList();
+        _loading=false;
       });
-    });
+    } catch(_) {
+      setState(() { _error=true; _loading=false; });
+    }
   }
 
   @override
-  Widget build(BuildContext c) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Calendario')),
-      body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // (aquí seguirías integrando un widget calendario real)
-            Text('TAREAS PARA CALENDARIO', style: TextStyle(fontWeight: FontWeight.bold)),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _tareas.length,
-                itemBuilder: (_, i) {
-                  final t = _tareas[i];
-                  return ListTile(
-                    leading: Icon(Icons.event_note),
-                    title: Text(t['nombre_tarea']),
-                    subtitle: Text('Entrega ${t['fecha_entrega']}'),
-                  );
-                },
-              ),
-            )
-          ],
-        ),
-      ),
+  Widget build(BuildContext ctx){
+    if (_loading) return Center(child: CircularProgressIndicator());
+    if (_error)   return Center(child: Text('Error cargando calendario'));
+    return ListView.builder(
+        itemCount: _pendientes.length,
+        itemBuilder: (_,i){
+          final t = _pendientes[i];
+          return ListTile(
+            leading: Icon(Icons.pending_actions),
+            title: Text(t.nombreTarea),
+            subtitle: Text('Entrega: ${t.fechaEntrega.toLocal().toIso8601String().split("T").first}'),
+          );
+        }
     );
   }
 }

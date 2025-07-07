@@ -1,113 +1,87 @@
+// lib/screens/add_tarea_screen.dart
 import 'package:flutter/material.dart';
+import '../models/categoria_principal.dart';
 import '../services/api_service.dart';
 
 class AddTareaScreen extends StatefulWidget {
   final int cursoId;
-
-  // Constructor que recibe el cursoId
-  const AddTareaScreen({
-    Key? key,
-    required this.cursoId,
-  }) : super(key: key);
+  const AddTareaScreen({Key? key, required this.cursoId}) : super(key: key);
 
   @override
   _AddTareaScreenState createState() => _AddTareaScreenState();
 }
 
 class _AddTareaScreenState extends State<AddTareaScreen> {
-  final _api                 = ApiService();
-  final _nombreController    = TextEditingController();
-  final _descripcionController = TextEditingController();
-  final _fechaController     = TextEditingController();
-  String _categoria          = 'P1';
-  bool _loading              = false;
-  String? _error;
+  final _nombreCtl = TextEditingController();
+  final _descCtl   = TextEditingController();
+  final _dateCtl   = TextEditingController();
+  final _pesoCtl   = TextEditingController();
+  String _tipo   = 'TAREA';
+  CategoriaPrincipal? _categoria;
+  List<CategoriaPrincipal> _cats = [];
+  bool _loadingCats = true;
 
-  void _submit() async {
-    final nombre    = _nombreController.text.trim();
-    final descripcion = _descripcionController.text.trim();
-    final fecha     = _fechaController.text.trim(); // espera 'YYYY-MM-DD'
-    if (nombre.isEmpty || fecha.isEmpty) {
-      setState(() => _error = 'Nombre y fecha son obligatorios');
-      return;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadCategorias();
+  }
 
+  Future<void> _loadCategorias() async {
+    // Si tu API expone /categorias/
+    // Después parsea con CategoriaPrincipal.fromJson
+    // Para simplificar aquí hardcodeamos:
     setState(() {
-      _loading = true;
-      _error = null;
+      _cats = [
+        CategoriaPrincipal(idCategoria:1, nombre:'Parcial', pesoPorcentaje:30, tipo:'PRINCIPAL'),
+        CategoriaPrincipal(idCategoria:2, nombre:'Tarea', pesoPorcentaje:10, tipo:'SECUNDARIA'),
+      ];
+      _categoria = _cats.first;
+      _loadingCats = false;
     });
+  }
 
-    final ok = await _api.createTarea(
-      nombre: nombre,
-      fechaEntrega: fecha,
-      estado: 'pendiente',
-      categoria: _categoria,
-      pesoPorcentaje: 0.0,
+  void _save() async {
+    final ok = await ApiService().createTarea(
+      nombre: _nombreCtl.text,
+      fechaEntrega: _dateCtl.text,
+      estado: 'PENDIENTE',
+      categoria: _categoria!.idCategoria.toString(),
+      pesoPorcentaje: double.parse(_pesoCtl.text),
       cursoId: widget.cursoId,
     );
-
-    setState(() => _loading = false);
-
-    if (ok) {
-      Navigator.pop(context);
-    } else {
-      setState(() => _error = 'Error al crear la tarea');
-    }
+    if (ok) Navigator.pop(context);
   }
 
   @override
-  void dispose() {
-    _nombreController.dispose();
-    _descripcionController.dispose();
-    _fechaController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext c) {
+    if (_loadingCats) return Center(child: CircularProgressIndicator());
     return Scaffold(
       appBar: AppBar(title: Text("Agregar Tarea o Prueba")),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: ListView(
           children: [
-            if (_error != null) ...[
-              Text(_error!, style: TextStyle(color: Colors.red)),
-              SizedBox(height: 12),
-            ],
-            TextField(
-              controller: _nombreController,
-              decoration: InputDecoration(labelText: 'Nombre'),
-            ),
-            TextField(
-              controller: _descripcionController,
-              decoration: InputDecoration(labelText: 'Descripción'),
-            ),
-            TextField(
-              controller: _fechaController,
-              decoration: InputDecoration(
-                labelText: 'Fecha de entrega',
-                hintText: 'YYYY-MM-DD',
-              ),
-            ),
+            TextField(controller: _nombreCtl, decoration: InputDecoration(labelText:'Nombre')),
+            TextField(controller: _descCtl,   decoration: InputDecoration(labelText:'Descripción')),
+            TextField(controller: _dateCtl,   decoration: InputDecoration(labelText:'Fecha (YYYY-MM-DD)')),
+            TextField(controller: _pesoCtl,   decoration: InputDecoration(labelText:'Peso (%)'), keyboardType: TextInputType.number),
             DropdownButtonFormField<String>(
+              value: _tipo,
+              decoration: InputDecoration(labelText: 'Tipo'),
+              items: ['TAREA','PRACTICA_GRUPAL','CONTROL'].map((v) =>
+                  DropdownMenuItem(value:v, child: Text(v)),
+              ).toList(),
+              onChanged: (v)=>setState(()=>_tipo=v!),
+            ),
+            DropdownButtonFormField<CategoriaPrincipal>(
               value: _categoria,
-              decoration: InputDecoration(labelText: "Categoría"),
-              items: [
-                DropdownMenuItem(value: 'P1', child: Text("Permanente 1")),
-                DropdownMenuItem(value: 'P2', child: Text("Permanente 2")),
-                DropdownMenuItem(value: 'PAR', child: Text("Parcial")),
-                DropdownMenuItem(value: 'FIN', child: Text("Final")),
-              ],
-              onChanged: (v) => setState(() => _categoria = v!),
+              decoration: InputDecoration(labelText: 'Categoría'),
+              items: _cats.map((c)=> DropdownMenuItem(value:c, child: Text(c.nombre))).toList(),
+              onChanged: (c)=>setState(()=>_categoria=c!),
             ),
-            SizedBox(height: 20),
-            _loading
-                ? Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-              onPressed: _submit,
-              child: Text("Guardar"),
-            ),
+            SizedBox(height:20),
+            ElevatedButton(onPressed:_save, child: Text("Guardar")),
           ],
         ),
       ),

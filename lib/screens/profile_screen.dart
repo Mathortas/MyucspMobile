@@ -1,6 +1,7 @@
+// lib/screens/profile_screen.dart
+
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -9,38 +10,58 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
-  Map<String,dynamic>? _perfil;
   bool _loading = true;
+  String? _error;
+  Map<String, dynamic>? _profile;
 
   @override
   void initState() {
     super.initState();
-    _api.fetchMatriculas().then((m) {
-      // asumiendo que el perfil está en el token; si lo quieres de /usuarios/, añade un endpoint
-      setState(() => _loading = false);
-    });
+    _loadProfile();
   }
 
-  void _logout() {
-    _api.logout();
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+  Future<void> _loadProfile() async {
+    try {
+      final data = await _api.fetchProfile();
+      setState(() {
+        _profile = data;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext _) {
+    if (_loading) return Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
+
     return Scaffold(
-      appBar: AppBar(title: Text('Perfil del estudiante')),
+      appBar: AppBar(title: Text('Mi Perfil')),
       body: Padding(
-        padding: EdgeInsets.all(24),
-        child: _loading
-            ? Center(child: CircularProgressIndicator())
-            : Column(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(radius: 48, child: Icon(Icons.person, size: 48)),
-            SizedBox(height: 16),
-            Text('Bienvenido', style: TextStyle(fontSize: 20)),
+            Text('Usuario: ${_profile!['username']}', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Nombre: ${_profile!['first_name']} ${_profile!['last_name']}'),
+            SizedBox(height: 8),
+            Text('Correo: ${_profile!['email']}'),
             Spacer(),
-            ElevatedButton(onPressed: _logout, child: Text('Cerrar sesión')),
+            Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  await _api.logout();
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                child: Text('Cerrar sesión'),
+              ),
+            ),
           ],
         ),
       ),

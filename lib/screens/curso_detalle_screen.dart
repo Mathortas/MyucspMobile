@@ -1,17 +1,13 @@
 // lib/screens/curso_detalle_screen.dart
-
 import 'package:flutter/material.dart';
+import '../models/tarea.dart';
+import '../models/curso.dart';
 import '../services/api_service.dart';
 import 'add_tarea_screen.dart';
 
 class CursoDetalleScreen extends StatefulWidget {
   final int cursoId;
-
-  // Constructor marcado como const y con Key opcional
-  const CursoDetalleScreen({
-    Key? key,
-    required this.cursoId,
-  }) : super(key: key);
+  const CursoDetalleScreen({Key? key, required this.cursoId}) : super(key: key);
 
   @override
   _CursoDetalleScreenState createState() => _CursoDetalleScreenState();
@@ -19,70 +15,107 @@ class CursoDetalleScreen extends StatefulWidget {
 
 class _CursoDetalleScreenState extends State<CursoDetalleScreen> {
   final _api = ApiService();
-  List _tareas = [];
+  List<Tarea> _tareas = [];
+  Curso? _curso;
   bool _loading = true;
-  String? _error;
+  bool _error = false;
 
   @override
   void initState() {
     super.initState();
-    _loadTareas();
+    _loadData();
   }
 
-  /// Carga las tareas desde el backend y filtra por widget.cursoId
-  void _loadTareas() async {
+  Future<void> _loadData() async {
     try {
-      final data = await _api.fetchTareas();
+      // Traer todas las tareas
+      final rawTareas = await _api.fetchTareas();
+      final todas = rawTareas.map((j) => Tarea.fromJson(j)).toList();
+      final tareasCurso = todas.where((t) => t.idCurso == widget.cursoId).toList();
+
+      // Traer todos los cursos y obtener el curso actual
+      final rawCursos = await _api.fetchCursos();
+      final cursos = rawCursos.map((j) => Curso.fromJson(j)).toList();
+      final curso = cursos.firstWhere((c) => c.idCurso == widget.cursoId, orElse: () => Curso(
+          idCurso: widget.cursoId,
+          nombre: "Desconocido",
+          ciclo: "",
+          modalidad: "",
+          descripcion: "",
+          creditos: 0
+      ));
+
       setState(() {
-        _tareas = data.where((t) => t['id_curso'] == widget.cursoId).toList();
+        _curso = curso;
+        _tareas = tareasCurso;
         _loading = false;
+        _error = false;
       });
     } catch (e) {
+      print("ERROR LOAD DATA: $e");
       setState(() {
-        _error = 'Error cargando tareas';
+        _error = true;
         _loading = false;
       });
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext c) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Detalle del curso'),
-      ),
+      appBar: AppBar(title: Text('Detalle del curso')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _tareas.length,
-        itemBuilder: (_, i) {
-          final t = _tareas[i];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              title: Text(t['nombre_tarea']),
-              subtitle:
-              Text('Entrega: ${t['fecha_entrega']} - ${t['estado']}'),
+          ? Center(child: CircularProgressIndicator())
+          : _error
+          ? Center(child: Text('Error cargando datos'))
+          : SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Información del curso
+            Text(
+              _curso?.nombre ?? 'Curso Desconocido',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          );
-        },
+            SizedBox(height: 8),
+            Text(_curso?.descripcion ?? ''),
+            SizedBox(height: 16),
+            Divider(),
+            SizedBox(height: 8),
+            Text(
+              'Tareas:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+            if (_tareas.isEmpty)
+              Text('No hay tareas registradas.'),
+            ..._tareas.map((t) => Card(
+              margin: EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                title: Text(t.nombreTarea),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Entrega: ${t.fechaEntrega.toLocal().toIso8601String().split("T").first}'),
+                    Text('Estado: ${t.estado}'),
+                    Text('Peso: ${t.pesoPorcentaje}%'),
+                    Text('Categoría ID: ${t.idCategoria}'),
+                  ],
+                ),
+              ),
+            )),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddTareaScreen(cursoId: widget.cursoId),
-            ),
-          ).then((_) {
-            // Al volver, recargamos la lista
-            _loadTareas();
-          });
-        },
+        onPressed: () => Navigator.push(
+          c,
+          MaterialPageRoute(
+            builder: (_) => AddTareaScreen(cursoId: widget.cursoId),
+          ),
+        ).then((_) => _loadData()),
+        child: Icon(Icons.add),
       ),
     );
   }

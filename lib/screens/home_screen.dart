@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/curso.dart';
+import '../models/matricula.dart';
 import '../services/api_service.dart';
 import 'curso_detalle_screen.dart';
-import 'calendario_screen.dart';
-import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,81 +11,67 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _api = ApiService();
-  List _cursos = [];
-  bool _loading = true;
-  String? _error;
+  List<Matricula> _matriculas = [];
+  Map<int, Curso> _cursos = {};
+  bool _loading = true,
+      _error = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCursos();
+    _loadMatriculas();
   }
 
-  void _loadCursos() async {
+  Future<void> _loadMatriculas() async {
     try {
-      final data = await _api.fetchCursos();
+      final rawMatriculas = await _api.fetchMatriculas();
+      final matriculas = rawMatriculas
+          .map((j) => Matricula.fromJson(j))
+          .toList();
+
+      final rawCursos = await _api.fetchCursos();
+      final cursosList = rawCursos.map((j) => Curso.fromJson(j)).toList();
+      final cursosMap = { for (var c in cursosList) c.idCurso: c};
+
       setState(() {
-        _cursos = data;
+        _matriculas = matriculas;
+        _cursos = cursosMap;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        _error = 'Error cargando cursos';
+        _error = true;
         _loading = false;
       });
     }
   }
 
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext ctx) {
+    if (_loading) return Center(child: CircularProgressIndicator());
+    if (_error) return Center(child: Text('Error cargando cursos'));
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Mis cursos'),
-        actions: [
-          IconButton(icon: Icon(Icons.calendar_today),
-              onPressed: () => Navigator.push(
-                  c, MaterialPageRoute(builder: (_) => CalendarioScreen()))),
-          IconButton(icon: Icon(Icons.person),
-              onPressed: () => Navigator.push(
-                  c, MaterialPageRoute(builder: (_) => ProfileScreen()))),
-        ],
-      ),
-      body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
-          : GridView.builder(
-        padding: EdgeInsets.all(12),
-        itemCount: _cursos.length + 1,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12),
+      appBar: AppBar(title: Text('Mis cursos')),
+      body: ListView.builder(
+        itemCount: _matriculas.length,
         itemBuilder: (_, i) {
-          if (i == 0) {
-            return GestureDetector(
-              onTap: () {}, // luego
-              child: Container(
-                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(16)),
-                child: Center(child: Icon(Icons.add, size: 48, color: Colors.grey)),
-              ),
-            );
-          }
-          final curso = _cursos[i - 1];
-          return GestureDetector(
-            onTap: () => Navigator.push(
-                c,
-                MaterialPageRoute(
-                    builder: (_) => CursoDetalleScreen(cursoId: curso['id_curso']))),
-            child: Container(
-              decoration: BoxDecoration(
-                  color: Colors.primaries[i % Colors.primaries.length],
-                  borderRadius: BorderRadius.circular(16)),
-              child: Center(
-                child: Text(curso['nombre'],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
+          final m = _matriculas[i];
+          final curso = _cursos[m.idCurso];
+
+          return ListTile(
+            title: Text(curso != null ? curso.nombre : 'Curso Desconocido'),
+            subtitle: Text('Ciclo: ${m.ciclo}'),
+            onTap: () {
+              if (curso != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CursoDetalleScreen(cursoId: curso.idCurso),
+                  ),
+                );
+              }
+            },
           );
         },
       ),

@@ -61,6 +61,10 @@ class ApiService {
   Future<List<dynamic>> fetchCursos() async {
     final headers = await _authHeaders();
     final resp = await http.get(Uri.parse('$_baseUrl/cursos/'), headers: headers);
+
+    print("STATUS FETCH CURSOS: ${resp.statusCode}");
+    print("BODY FETCH CURSOS: ${resp.body}");
+
     if (resp.statusCode == 200) {
       return json.decode(resp.body);
     }
@@ -71,11 +75,16 @@ class ApiService {
   Future<List<dynamic>> fetchMatriculas() async {
     final headers = await _authHeaders();
     final resp = await http.get(Uri.parse('$_baseUrl/matriculas/'), headers: headers);
+
+    print("STATUS FETCH MATRICULAS: ${resp.statusCode}");
+    print("BODY FETCH MATRICULAS: ${resp.body}");
+
     if (resp.statusCode == 200) {
       return json.decode(resp.body);
     }
     throw Exception('Error cargando matriculas');
   }
+
 
   /// 5) Crear una matrícula nueva
   Future<bool> createMatricula(int cursoId, String ciclo) async {
@@ -186,6 +195,21 @@ class ApiService {
       return true;
     }
     return false;
+  }
+
+  /// 1️⃣2️⃣: Traer perfil del usuario autenticado
+  Future<Map<String, dynamic>> fetchProfile() async {
+    final token = await _storage.read(key: 'access');
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    final resp = await http.get(Uri.parse('$_baseUrl/users/me/'), headers: headers);
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+    throw Exception('Error cargando perfil: ${resp.statusCode}');
   }
 
   /// Cerrar sesión: borrar tokens
